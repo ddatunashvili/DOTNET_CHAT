@@ -1,0 +1,133 @@
+
+----------------- app creation
+dotnet new mvc --auth Individual -f net8.0 -o ChatApp
+
+----------------- running
+dotnet restore
+dotnet run
+
+----------------- db config
+
+dotnet tool install --global dotnet-ef
+
+
+dotnet ef migrations add AddMessages
+dotnet ef database update
+
+
+dotnet ef migrations add AddApplicationUsers
+
+dotnet ef migrations add MakeReceiverNullable
+
+-------------------------- package install
+
+dotnet add package Microsoft.AspNetCore.SignalR
+
+
+-------------------------- custom run csproj
+
+dotnet build ChatApp.csproj
+
+dotnet run --project ChatApp.csproj
+
+dotnet watch run --project ChatApp.csproj
+---------------------------- clear build file
+rm DOTNET_CHAT.sln
+dotnet watch run
+
+----------------------------  reset db custom commands
+dotnet run -- clear-chat-safe
+dotnet run -- reset-db
+dotnet run -- clear-chat
+
+
+--------------- migrations
+dotnet ef migrations remove
+dotnet ef migrations add Init
+dotnet ef database update
+
+
+
+--------------- live editing
+dotnet watch run
+dotnet watch --project ChatApp.csproj run
+
+
+--------------- structure
+dotnet ef dbcontext info
+
+--------------- migrations folder
+dotnet ef migrations add InitialCreate -o Data/Migrations
+
+--------------- db folder
+"DefaultConnection": "Data Source=Data/app.db"
+
+--------------- build exe
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+
+dotnet publish ChatApp.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true
+
+--------------- build clean
+
+dotnet clean ChatApp.csproj
+rm -rf bin obj
+
+
+
+--------------- Install Electron.NET CLI:
+dotnet tool install ElectronNET.CLI -g
+
+--------------- From your ASP.NET Core project folder, run:
+electronize init
+then
+--------------- electronize start to test desktop app
+
+--------------- Build desktop app with CMD:
+electronize build /target win /working-dir "G:\DOTNET_CHAT"
+
+----- publish
+dotnet publish ChatApp.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishReadyToRun=true -o ./publish
+
+
+-----
+electronize build /target custom win-x64;win /electron-params "--dir ./publish"
+
+
+
+dotnet publish DOTNET_CHAT.sln -c Release -o out
+
+
+---------------------------------------------
+
+dotnet tool install ElectronNET.CLI -g
+
+
+rm electronize
+
+
+electronize initel
+
+ectronize start
+
+electronize build /target win
+
+
+"directories": {
+  "output": "../../../bin/Desktop"
+}
+
+---------------------------------------------
+
+👉 Download and install NSIS:
+https://nsis.sourceforge.io/Download
+
+Make sure makensis.exe is available in your system PATH.
+
+---------------------------------------------
+
+
+electronize build /target win --publish always
+
+obj\desktop\win\bin
+
+

@@ -1,0 +1,33 @@
+{
+  "build": {
+    "appId": "com.ChatApp.app",
+    "productName": "ChatApp",
+    "copyright": "Copyright © 2025",
+    "buildVersion": "1.0.0",
+    "compression": "maximum",
+    "directories": {
+      "output": "../../bin/Desktop"  
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ChatApp",
+      "installerIcon": "wwwroot/favicon.ico",
+      "uninstallerIcon": "wwwroot/favicon.ico"
+    }
+  }
+}

@@ -1,0 +1,261 @@
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<div style="display: flex; height: 90vh; background-color: #1e1449; color: #f0e6ff; font-family: Arial, sans-serif;">
+    <!-- Sidebar -->
+    <div style="width: 250px; border-right: 1px solid #555; padding: 20px; overflow-y: auto;">
+        <h3 style="color: #fff;">Chats</h3>
+        <ul id="chatUserList" style="list-style: none; padding: 0; margin: 0;"></ul>
+    </div>
+
+    <!-- Main Chat -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; padding: 20px 0; ">
+        <h2>@(User.Identity?.Name ?? "Guest")'s chat with <span id="selectedUser">No one</span></h2>
+        <input type="hidden" id="userEmail" value="@User.Identity?.Name" />
+   
+
+        <ul id="messagesList" style="list-style: none; padding:  10px; flex-grow: 1; overflow-y: auto; margin-bottom: 10px;"></ul>
+
+        <div style="display: flex; gap:10px; padding:20px">
+            <input type="text" id="messageInput" placeholder="Type message..." autocomplete="off"
+                style="flex-grow: 1; padding: 10px; border: none; background-color: #3c2b80; color: #fff;" disabled />
+            <button id="sendButton"
+                style="padding: 10px 20px; background-color: #6c45ff; color: white; border: none;" disabled>Send</button>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="~/css/chat.css" />
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+const connection = new signalR.HubConnectionBuilder().withUrl("/chathub").build();
+
+const userEmail = document.getElementById("userEmail").value;
+const messagesList = document.getElementById("messagesList");
+const selectedUserSpan = document.getElementById("selectedUser");
+const chatUserList = document.getElementById("chatUserList");
+const messageInput = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
+
+let typingTimeout;
+const typingIndicator = document.createElement("li");
+typingIndicator.className = "typing-indicator";
+typingIndicator.id = "typingIndicator";
+
+function getInitials(email) {
+    return email ? email[0].toUpperCase() : "U";
+}
+
+function appendMessage(sender, message, timestamp, isSeen = false) {
+    const li = document.createElement("li");
+    const isSender = sender === userEmail;
+    li.classList.add(isSender ? "message-right" : "message-left");
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = getInitials(sender);
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
+    contentDiv.setAttribute('data-sender', sender);
+    contentDiv.setAttribute('data-timestamp', timestamp);
+
+contentDiv.innerHTML = `
+    <div style="display: flex; justify-content: space-between;">
+        <div><strong>${sender}</strong></div>
+        <div><small>${timestamp}</small></div>
+    </div>
+    <div style="margin: 4px 0;">${message}</div>
+`;
+
+
+if (isSender && isSeen) {
+    contentDiv.setAttribute('data-seen', 'true');
+    const seen = document.createElement('div');
+    seen.className = 'seen-label';
+
+    const now = new Date();
+    const seenTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    seen.textContent = `Seen at ${seenTime}`;
+    contentDiv.appendChild(seen);
+}
+
+    li.appendChild(avatar);
+    li.appendChild(contentDiv);
+    messagesList.appendChild(li);
+    messagesList.scrollTop = messagesList.scrollHeight;
+}
+
+function loadMessages(receiver) {
+    fetch(`/Chat/GetMessages?receiver=${encodeURIComponent(receiver)}`)
+        .then(response => response.json())
+        .then(data => {
+            messagesList.innerHTML = "";
+            data.forEach(msg => {
+                appendMessage(msg.senderId, msg.content, msg.timestamp, msg.isSeen);
+            });
+        });
+}
+
+function updateChatUserList(users) {
+    chatUserList.innerHTML = "";
+
+    fetch('/Chat/GetAllUsers')
+        .then(res => res.json())
+        .then(allUsers => {
+            let firstSelectableUser = null;
+
+            allUsers.forEach(user => {
+                if (user !== userEmail) {
+                    const isOnline = users.includes(user);
+
+                    const li = document.createElement("li");
+                    li.className = isOnline ? "user-online" : "user-offline";
+
+                    li.innerHTML = `
+                        <div class="avatar">${getInitials(user)}</div>
+                        <div class="username">${user}</div>
+                    `;
+
+                    li.onclick = () => {
+                        selectedUserSpan.textContent = user;
+                        loadMessages(user);
+                        enableChat(true);
+                        messageInput.focus();
+                    };
+
+                    chatUserList.appendChild(li);
+
+                    if (!firstSelectableUser) {
+                        firstSelectableUser = li;
+                    }
+                }
+            });
+
+            if (firstSelectableUser) {
+                firstSelectableUser.click();
+                messageInput.focus();
+            }
+        });
+}
+
+function enableChat(enabled) {
+    messageInput.disabled = !enabled;
+    sendButton.disabled = !enabled;
+}
+
+function checkAndSendSeen(sender) {
+    const currentReceiver = selectedUserSpan.textContent;
+    if (currentReceiver === sender) {
+        connection.invoke("SeenMessage", sender)
+            .catch(err => console.error(err.toString()));
+    }
+}
+
+function removeTypingIndicator() {
+    const existing = document.getElementById("typingIndicator");
+    if (existing) {
+        existing.remove();
+    }
+}
+
+connection.on("ReceiveMessage", (sender, message, timestamp) => {
+    appendMessage(sender, message, timestamp);
+
+    const currentReceiver = selectedUserSpan.textContent;
+    if (sender === currentReceiver) {
+        checkAndSendSeen(sender);
+    }
+});
+
+connection.on("UpdateUserList", (users) => {
+    updateChatUserList(users);
+});
+
+connection.on("UserTyping", (user) => {
+    const currentReceiver = selectedUserSpan.textContent;
+    if (user === currentReceiver) {
+        if (!document.getElementById("typingIndicator")) {
+            typingIndicator.innerHTML = `
+                <span>${user} is typing</span>
+                <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+            `;
+            messagesList.appendChild(typingIndicator);
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+    }
+});
+
+connection.on("UserStopTyping", () => {
+    removeTypingIndicator();
+});
+
+connection.on("MessageSeen", (sender, receiver) => {
+    const currentReceiver = selectedUserSpan.textContent;
+    if (receiver === userEmail && sender === currentReceiver) {
+        const messageBubbles = messagesList.querySelectorAll(
+            `.message-content[data-sender="${userEmail}"]:not([data-seen="true"])`
+        );
+        messageBubbles.forEach(bubble => {
+            const seen = document.createElement('div');
+            seen.className = 'seen-label';
+            seen.textContent = 'Seen';
+            bubble.appendChild(seen);
+            bubble.setAttribute('data-seen', 'true');
+        });
+    }
+});
+
+connection.start().then(() => {
+    enableChat(false);
+});
+
+// ✅ Send button
+sendButton.addEventListener("click", (event) => {
+    sendMessage();
+    event.preventDefault();
+});
+
+// ✅ Enter to send
+messageInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// ✅ Typing events
+messageInput.addEventListener("input", () => {
+    const receiver = selectedUserSpan.textContent;
+    if (receiver !== userEmail) {
+        connection.invoke("Typing", receiver);
+    }
+
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        connection.invoke("StopTyping", receiver);
+    }, 1500);
+});
+
+function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message) return;
+
+    const receiver = selectedUserSpan.textContent;
+    connection.invoke("SendMessage", message, receiver)
+        .catch(err => console.error(err.toString()));
+
+    connection.invoke("StopTyping", receiver);
+    messageInput.value = "";
+    messageInput.focus();
+}
+
+window.onload = () => {
+    messageInput.focus();
+};
+</script>
+}

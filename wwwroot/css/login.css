@@ -1,0 +1,33 @@
+body {
+    background-color: #1e1449;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+input.form-control {
+    background-color: #3c2b80;
+    border: 1px solid #555;
+    color: #eee;
+}
+
+input.form-control:focus {
+    background-color: #4b2f73;
+    color: white;
+    border-color: #7b35d5;
+}
+
+.btn-primary {
+    background-color: #7b35d5;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #9a50e3;
+}
+
+label {
+    color: #ccc;
+}

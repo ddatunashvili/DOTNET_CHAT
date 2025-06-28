@@ -1,0 +1,38 @@
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  outline: none;
+  text-decoration: none;
+}
+body{
+  background-color: #1e1449;
+ 
+}input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #1e1449 inset !important;
+    box-shadow: 0 0 0px 1000px #1e1449 inset !important;
+    -webkit-text-fill-color: #f0e6ff !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
